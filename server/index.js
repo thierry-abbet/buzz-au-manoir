@@ -14,3 +14,13 @@ io.on('connection', socket => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+io.on('connection', socket => {
+  console.log('User connected:', socket.id);
+
+  socket.on('buzz', () => {
+    console.log(`Buzz reçu de ${socket.id}`);
+    // On envoie à tous les clients l'ID du buzzeur
+    io.emit('buzzed', socket.id);
+  });
+});
