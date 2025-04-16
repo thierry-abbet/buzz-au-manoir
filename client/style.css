@@ -1,0 +1,44 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Georgia', serif;
+  background-color: #1e1b18;
+  color: #f3e9dc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.container {
+  text-align: center;
+}
+
+h1 {
+  font-size: 2.5em;
+  margin-bottom: 20px;
+}
+
+#buzzer {
+  padding: 20px 40px;
+  font-size: 1.5em;
+  background-color: #b00000;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+#buzzer:active {
+  transform: scale(0.95);
+}
+
+#buzzer.buzzed {
+  background-color: #00b000;
+}
+
+#status {
+  margin-top: 20px;
+  font-size: 1.2em;
+}
