@@ -1,10 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <meta charset='UTF-8'>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Buzz au Manoir</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="favicon.png" />
 </head>
 <body>
-  <h1>Buzz au Manoir</h1>
+  <div class="container">
+    <h1>Buzz au Manoir</h1>
+    <button id="buzzer">🔴 Buzzer !</button>
+    <p id="status">En attente du buzz...</p>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
