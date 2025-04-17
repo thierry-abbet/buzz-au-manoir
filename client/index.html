@@ -11,17 +11,26 @@
   <div class="container">
     <h1>Buzz au Manoir</h1>
 
-    <div class="room-controls">
-      <button id="create-room">🎛 Créer une salle (DJ)</button>
-      <input type="text" id="room-input" placeholder="Nom de la salle" />
-      <input type="text" id="name-input" placeholder="Ton pseudo" />
-      <button id="join-room">🔓 Rejoindre la salle</button>
+    <!-- Zone DJ pour créer une partie -->
+    <div id="create-section">
+      <h2>Créer une partie (DJ)</h2>
+      <button id="createRoom">🎲 Créer une partie</button>
+      <p id="createdRoomCode" style="margin-top: 10px;"></p>
     </div>
 
-    <p id="room-name">Salle : -</p>
+    <!-- Zone client pour rejoindre une partie -->
+    <div id="join-section">
+      <h2>Rejoindre une partie</h2>
+      <input type="text" id="roomCode" placeholder="Code de la partie" />
+      <input type="text" id="playerName" placeholder="Ton pseudo" />
+      <button id="joinRoom">🔓 Rejoindre</button>
+    </div>
 
-    <button id="buzzer" disabled>🔴 Buzzer !</button>
-    <p id="status">En attente...</p>
+    <!-- Interface buzzer -->
+    <div id="game-section" style="display: none;">
+      <button id="buzzer">🔴 Buzzer !</button>
+      <p id="status">En attente du buzz...</p>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
