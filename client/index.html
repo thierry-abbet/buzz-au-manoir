@@ -10,8 +10,18 @@
 <body>
   <div class="container">
     <h1>Buzz au Manoir</h1>
-    <button id="buzzer">🔴 Buzzer !</button>
-    <p id="status">En attente du buzz...</p>
+
+    <div class="room-controls">
+      <button id="create-room">🎛 Créer une salle (DJ)</button>
+      <input type="text" id="room-input" placeholder="Nom de la salle" />
+      <input type="text" id="name-input" placeholder="Ton pseudo" />
+      <button id="join-room">🔓 Rejoindre la salle</button>
+    </div>
+
+    <p id="room-name">Salle : -</p>
+
+    <button id="buzzer" disabled>🔴 Buzzer !</button>
+    <p id="status">En attente...</p>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
