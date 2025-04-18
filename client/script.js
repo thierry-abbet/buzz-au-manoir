@@ -1,59 +1,50 @@
+const urlParams = new URLSearchParams(window.location.search);
+const roomId = urlParams.get('room');
+
+if (!roomId) {
+  document.body.innerHTML = '<p>Aucune partie spécifiée. Veuillez utiliser un lien valide avec un ID de partie.</p>';
+  throw new Error('Aucune room spécifiée.');
+}
+
 const socket = io();
 
-const loginDiv = document.getElementById("login");
-const gameDiv = document.getElementById("game");
+let playerName = '';
 
-const pseudoInput = document.getElementById("pseudo");
-const roomInput = document.getElementById("room");
-const joinBtn = document.getElementById("join");
+socket.on('connect', () => {
+  console.log('Connecté avec ID :', socket.id);
 
-const buzzerBtn = document.getElementById("buzzer");
-const statusText = document.getElementById("status");
-const playerInfo = document.getElementById("player-info");
+  // Demande le pseudo si non stocké
+  playerName = localStorage.getItem('buzz-player-name') || prompt("Entrez votre pseudo :");
+  localStorage.setItem('buzz-player-name', playerName);
 
-let pseudo = "";
-let room = "";
-
-// Lorsqu'on clique sur "Rejoindre"
-joinBtn.addEventListener("click", () => {
-  pseudo = pseudoInput.value.trim();
-  room = roomInput.value.trim();
-
-  if (!pseudo || !room) {
-    alert("Merci de saisir un pseudo et un code de partie.");
-    return;
-  }
-
-  socket.emit("joinRoom", { pseudo, room });
+  // Rejoindre la partie
+  socket.emit('join-room', { roomId, playerName });
 });
 
-// Réception de la confirmation du serveur
-socket.on("joined", ({ pseudo, room }) => {
-  loginDiv.classList.add("hidden");
-  gameDiv.classList.remove("hidden");
+const buzzer = document.getElementById('buzzer');
+const status = document.getElementById('status');
 
-  playerInfo.textContent = `Joueur : ${pseudo} | Partie : ${room}`;
-  buzzerBtn.disabled = false;
-  statusText.textContent = "En attente du buzz...";
+buzzer.addEventListener('click', () => {
+  socket.emit('buzz', roomId);
+  buzzer.disabled = true;
+  status.textContent = 'Buzz envoyé !';
 });
 
-// Bouton buzzer
-buzzerBtn.addEventListener("click", () => {
-  socket.emit("buzz", { pseudo, room });
-  buzzerBtn.disabled = true;
-  statusText.textContent = "Buzz envoyé !";
-});
-
-// Quand un joueur buzz
-socket.on("buzzed", data => {
-  statusText.textContent = `Le plus rapide : ${data.pseudo}`;
-  buzzerBtn.classList.add("buzzed");
+socket.on('buzzed', (winnerName) => {
+  status.textContent = `Le plus rapide : ${winnerName}`;
+  buzzer.classList.add('buzzed');
   showConfetti();
 });
 
+socket.on('reset', () => {
+  buzzer.disabled = false;
+  status.textContent = 'En attente du buzz...';
+  buzzer.classList.remove('buzzed');
+});
+
 function showConfetti() {
-  const confetti = document.createElement("div");
-  confetti.classList.add("confetti");
+  const confetti = document.createElement('div');
+  confetti.classList.add('confetti');
   document.body.appendChild(confetti);
   setTimeout(() => confetti.remove(), 3000);
 }
