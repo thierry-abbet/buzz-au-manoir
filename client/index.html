@@ -9,27 +9,27 @@
 </head>
 <body>
   <div class="container">
-
-    <!-- Formulaire pour rejoindre une partie -->
-    <form id="join-form">
-      <h1>Rejoindre une partie</h1>
-      <label for="code">Code de la partie :</label>
-      <input type="text" id="code" placeholder="Ex: DRAG1" required />
-      <label for="pseudo">Ton pseudo :</label>
-      <input type="text" id="pseudo" placeholder="Ex: Loulou42" required />
-      <button type="submit">Rejoindre</button>
-    </form>
-
-    <!-- Interface principale du buzzer -->
-    <div id="main-ui" style="display: none;">
-      <h2 id="code-display"></h2>
-      <button id="buzzer">🔴 Buzzer !</button>
-      <p id="status">En attente du buzz...</p>
+    <h1>Buzz au Manoir</h1>
+    <div class="lobby">
+      <button id="create">🎲 Créer une partie</button>
+      <div class="join-section">
+        <input type="text" id="roomInput" placeholder="Nom de la partie" />
+        <button id="join">🔑 Rejoindre</button>
+      </div>
     </div>
-
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="script.js"></script>
+  <script>
+    document.getElementById('create').addEventListener('click', () => {
+      window.location.href = '/room?dj=true';
+    });
+
+    document.getElementById('join').addEventListener('click', () => {
+      const room = document.getElementById('roomInput').value.trim();
+      if (room) {
+        window.location.href = `/room?room=${encodeURIComponent(room)}`;
+      }
+    });
+  </script>
 </body>
 </html>
