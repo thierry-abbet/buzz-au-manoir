@@ -1,67 +1,61 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
-
+const express = require("express");
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+const http = require("http").createServer(app);
+const io = require("socket.io")(http);
+const path = require("path");
 
-// On sert le dossier client
-app.use(express.static(path.join(__dirname, '../client')));
+const PORT = process.env.PORT || 10000;
 
-// Structure pour stocker l’état des rooms
-const rooms = {};
+// Dictionnaire des parties : { codePartie: { joueurs: [], aBuzzé: false } }
+const parties = {};
 
-// Lorsqu'un client se connecte
-io.on('connection', socket => {
-  console.log('User connected:', socket.id);
+app.use(express.static(path.join(__dirname, "../client")));
 
-  // Création de la room par le DJ
-  socket.on('createRoom', roomName => {
-    socket.join(roomName);
-    rooms[roomName] = {
-      dj: socket.id,
-      players: {},
-      buzzed: false
-    };
-    console.log(`Room créée : ${roomName}`);
-  });
+io.on("connection", (socket) => {
+  console.log("Un joueur s'est connecté");
 
-  // Un joueur rejoint une room
-  socket.on('joinRoom', ({ room, name }) => {
-    if (!rooms[room]) {
-      rooms[room] = {
-        dj: null,
-        players: {},
-        buzzed: false
-      };
-    }
+  // Rejoindre une partie
+  socket.on("joinRoom", ({ pseudo, room }) => {
     socket.join(room);
-    rooms[room].players[socket.id] = name;
-    console.log(`${name} a rejoint la room ${room}`);
+    socket.pseudo = pseudo;
+    socket.room = room;
+
+    if (!parties[room]) {
+      parties[room] = { joueurs: [], aBuzzé: false };
+    }
+
+    parties[room].joueurs.push(socket);
+
+    console.log(`> ${pseudo} a rejoint la partie ${room}`);
+    socket.emit("joined", { pseudo, room });
   });
 
-  // Un joueur buzz
-  socket.on('buzz', ({ room, name }) => {
-    if (!rooms[room]) return;
-    if (!rooms[room].buzzed) {
-      rooms[room].buzzed = true;
-      io.to(room).emit('buzzed', { name });
-      console.log(`${name} a buzzé en premier dans la room ${room}`);
+  // Gestion du buzz
+  socket.on("buzz", ({ pseudo, room }) => {
+    const partie = parties[room];
+
+    if (partie && !partie.aBuzzé) {
+      partie.aBuzzé = true;
+      console.log(`💥 BUZZ ! ${pseudo} dans la partie ${room}`);
+      io.to(room).emit("buzzed", { pseudo });
     }
   });
 
   // Déconnexion
-  socket.on('disconnect', () => {
-    for (const room in rooms) {
-      delete rooms[room].players?.[socket.id];
-      // Optionnel : supprimer la room si plus personne ?
+  socket.on("disconnect", () => {
+    const { room } = socket;
+    if (room && parties[room]) {
+      parties[room].joueurs = parties[room].joueurs.filter((s) => s !== socket);
+      console.log(`${socket.pseudo} a quitté la partie ${room}`);
+
+      if (parties[room].joueurs.length === 0) {
+        delete parties[room]; // Nettoyage
+        console.log(`🧹 Partie ${room} supprimée car vide`);
+      }
     }
-    console.log('User disconnected:', socket.id);
   });
 });
 
-// Lancement du serveur
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+http.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
