@@ -2,73 +2,85 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const crypto = require('crypto');
+const { nanoid } = require('nanoid');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 // Stockage des parties
-const parties = {}; // { codePartie: { clients: [], buzzed: false, leader: socket.id } }
+const games = {};
 
+// Serve le client
 app.use(express.static(path.join(__dirname, '../client')));
 
-// Création d'une nouvelle partie
-app.get('/new', (req, res) => {
-  const code = crypto.randomBytes(3).toString('base64url').replace(/[^a-zA-Z0-9]/g, '').slice(0, 6);
-  parties[code] = { clients: [], buzzed: false };
-  res.json({ code });
-});
+io.on('connection', (socket) => {
+  console.log('Nouvelle connexion');
 
-// Connexion des sockets
-io.on('connection', socket => {
-  console.log('Nouvelle connexion :', socket.id);
+  // Création d'une nouvelle partie
+  socket.on('create-game', (playerName) => {
+    const code = nanoid(6).toLowerCase();
+    games[code] = {
+      host: socket.id,
+      players: {},
+      buzzed: false,
+    };
+    games[code].players[socket.id] = playerName;
+    socket.join(code);
+    socket.emit('game-created', code);
+    console.log(`Partie créée : ${code} par ${playerName}`);
+  });
 
-  socket.on('join', ({ code, pseudo }) => {
-    if (!parties[code]) {
-      socket.emit('error_message', 'Partie introuvable.');
+  // Rejoindre une partie existante
+  socket.on('join-game', ({ gameCode, playerName }) => {
+    const game = games[gameCode];
+    if (!game) {
+      socket.emit('error-message', 'Partie introuvable');
       return;
     }
-
-    socket.join(code);
-    socket.code = code;
-    socket.pseudo = pseudo;
-
-    parties[code].clients.push(socket);
-    console.log(`${pseudo} a rejoint la partie ${code}`);
+    game.players[socket.id] = playerName;
+    socket.join(gameCode);
+    socket.emit('game-joined');
+    console.log(`${playerName} a rejoint la partie ${gameCode}`);
   });
 
-  socket.on('buzz', () => {
-    const code = socket.code;
-    if (!code || !parties[code] || parties[code].buzzed) return;
-
-    parties[code].buzzed = true;
-
-    // Annonce du plus rapide
-    io.to(code).emit('buzzed', { name: socket.pseudo });
-
-    // Optionnel : réinitialisation automatique après x secondes ?
+  // Gestion du buzz
+  socket.on('buzz', ({ gameCode, name }) => {
+    const game = games[gameCode];
+    if (!game || game.buzzed) return;
+    game.buzzed = true;
+    io.to(gameCode).emit('buzzed', { name });
+    console.log(`${name} a buzzé dans la partie ${gameCode}`);
   });
 
-  socket.on('reset', () => {
-    const code = socket.code;
-    if (!code || !parties[code]) return;
-
-    parties[code].buzzed = false;
-    io.to(code).emit('reset');
+  // Réinitialiser le buzz (par l’hôte plus tard)
+  socket.on('reset', (gameCode) => {
+    const game = games[gameCode];
+    if (!game) return;
+    game.buzzed = false;
+    io.to(gameCode).emit('reset');
   });
 
+  // Déconnexion
   socket.on('disconnect', () => {
-    const code = socket.code;
-    if (!code || !parties[code]) return;
+    for (const code in games) {
+      const game = games[code];
+      if (game.players[socket.id]) {
+        console.log(`${game.players[socket.id]} a quitté la partie ${code}`);
+        delete game.players[socket.id];
 
-    parties[code].clients = parties[code].clients.filter(s => s !== socket);
-    if (parties[code].clients.length === 0) {
-      delete parties[code];
+        // Si l'hôte quitte, supprimer la partie
+        if (socket.id === game.host) {
+          delete games[code];
+          console.log(`Partie ${code} supprimée (hôte déconnecté)`);
+        }
+      }
     }
   });
 });
 
-server.listen(PORT, () => console.log(`✅ Serveur en ligne sur le port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
