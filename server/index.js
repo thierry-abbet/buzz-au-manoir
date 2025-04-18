@@ -10,8 +10,8 @@ const io = new Server(server);
 
 const parties = {}; // { roomCode: { djId, clients: [] } }
 
-// app.use(express.static(path.join(__dirname, '../public')));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../public')));
+//app.use(express.static('public'));
 
 // Redirige /room vers le bon fichier room.html
 app.get('/room', (req, res) => {
