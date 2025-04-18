@@ -41,6 +41,23 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Réinitialisation depuis le DJ
+  socket.on("reset", ({ room }) => {
+    if (parties[room]) {
+      parties[room].aBuzzé = false;
+      io.to(room).emit("resetBuzz");
+      console.log(`🔄 Reset du buzz dans la partie ${room}`);
+    }
+  });
+
+  // Création de partie par le DJ
+  socket.on("createRoom", () => {
+    const roomCode = generateRoomCode();
+    parties[roomCode] = { joueurs: [], aBuzzé: false };
+    socket.emit("roomCreated", { room: roomCode });
+    console.log(`🏪 Partie créée : ${roomCode}`);
+  });
+
   // Déconnexion
   socket.on("disconnect", () => {
     const { room } = socket;
@@ -50,11 +67,19 @@ io.on("connection", (socket) => {
 
       if (parties[room].joueurs.length === 0) {
         delete parties[room]; // Nettoyage
-        console.log(`🧹 Partie ${room} supprimée car vide`);
+        console.log(`🪩 Partie ${room} supprimée car vide`);
       }
     }
   });
 });
+
+function generateRoomCode() {
+  const adjectives = ["epic", "mystic", "crazy", "wild", "silly"];
+  const nouns = ["goblin", "dragon", "wizard", "bard", "orc"];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  return `${adj}-${noun}-${Math.floor(Math.random() * 1000)}`;
+}
 
 http.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
