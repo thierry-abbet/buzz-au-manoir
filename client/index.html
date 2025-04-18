@@ -8,20 +8,10 @@
   <link rel="icon" type="image/png" href="favicon.png" />
 </head>
 <body>
-  <!-- Connexion -->
-  <div class="container" id="login">
-    <h1>Rejoindre une partie</h1>
-    <input type="text" id="pseudo" placeholder="Votre pseudo" />
-    <input type="text" id="room" placeholder="Code de la partie" />
-    <button id="join">Rejoindre</button>
-  </div>
-
-  <!-- Interface Buzzer (cachée au départ) -->
-  <div class="container hidden" id="game">
+  <div class="container">
     <h1>Buzz au Manoir</h1>
-    <p id="player-info"></p>
+    <p id="status">Connexion en cours...</p>
     <button id="buzzer">🔴 Buzzer !</button>
-    <p id="status">En attente du buzz...</p>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
