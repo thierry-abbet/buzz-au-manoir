@@ -65,6 +65,10 @@ io.on('connection', socket => {
   });
 });
 
+app.get('/room', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/room.html'));
+});
+
 server.listen(port, () => {
   console.log(`Serveur lancé sur le port ${port}`);
 });
