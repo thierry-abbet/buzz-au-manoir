@@ -1,45 +1,50 @@
-const urlParams = new URLSearchParams(window.location.search);
-const roomId = urlParams.get('room');
-
-if (!roomId) {
-  document.body.innerHTML = '<p>Aucune partie spécifiée. Veuillez utiliser un lien valide avec un ID de partie.</p>';
-  throw new Error('Aucune room spécifiée.');
-}
-
-const socket = io();
-
-let playerName = '';
-
-socket.on('connect', () => {
-  console.log('Connecté avec ID :', socket.id);
-
-  // Demande le pseudo si non stocké
-  playerName = localStorage.getItem('buzz-player-name') || prompt("Entrez votre pseudo :");
-  localStorage.setItem('buzz-player-name', playerName);
-
-  // Rejoindre la partie
-  socket.emit('join-room', { roomId, playerName });
-});
+let socket;
+let codePartie = '';
+let pseudo = '';
 
 const buzzer = document.getElementById('buzzer');
 const status = document.getElementById('status');
+const joinForm = document.getElementById('join-form');
+const mainUI = document.getElementById('main-ui');
+const codeDisplay = document.getElementById('code-display');
+
+joinForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  codePartie = document.getElementById('code').value.trim().toUpperCase();
+  pseudo = document.getElementById('pseudo').value.trim();
+  if (!codePartie || !pseudo) return alert('Remplis tous les champs');
+
+  socket = io();
+
+  socket.on('connect', () => {
+    socket.emit('join', { code: codePartie, pseudo });
+  });
+
+  socket.on('buzzed', data => {
+    status.textContent = `Le plus rapide : ${data.name}`;
+    buzzer.classList.add('buzzed');
+    showConfetti();
+  });
+
+  socket.on('reset', () => {
+    status.textContent = 'En attente du buzz...';
+    buzzer.disabled = false;
+    buzzer.classList.remove('buzzed');
+  });
+
+  socket.on('error_message', msg => {
+    alert(msg);
+  });
+
+  joinForm.style.display = 'none';
+  mainUI.style.display = 'block';
+  codeDisplay.textContent = `Code de la partie : ${codePartie}`;
+});
 
 buzzer.addEventListener('click', () => {
-  socket.emit('buzz', roomId);
+  socket.emit('buzz');
   buzzer.disabled = true;
   status.textContent = 'Buzz envoyé !';
-});
-
-socket.on('buzzed', (winnerName) => {
-  status.textContent = `Le plus rapide : ${winnerName}`;
-  buzzer.classList.add('buzzed');
-  showConfetti();
-});
-
-socket.on('reset', () => {
-  buzzer.disabled = false;
-  status.textContent = 'En attente du buzz...';
-  buzzer.classList.remove('buzzed');
 });
 
 function showConfetti() {
