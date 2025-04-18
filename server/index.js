@@ -7,65 +7,61 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// On sert le dossier client
 app.use(express.static(path.join(__dirname, '../client')));
 
-// Génère un nom de salle rigolo
-function generateRoomName() {
-  const adjectives = ['sombre', 'joyeux', 'mystique', 'ancien', 'bruyant'];
-  const nouns = ['manoir', 'troll', 'donjon', 'dragon', 'grimoire'];
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  return `${adj}-${noun}-${Math.floor(Math.random() * 1000)}`;
-}
-
-// Map des salles et de leurs buzzers
+// Structure pour stocker l’état des rooms
 const rooms = {};
 
+// Lorsqu'un client se connecte
 io.on('connection', socket => {
   console.log('User connected:', socket.id);
 
-  socket.on('create-room', callback => {
-    const roomName = generateRoomName();
-    rooms[roomName] = { firstBuzzer: null };
+  // Création de la room par le DJ
+  socket.on('createRoom', roomName => {
     socket.join(roomName);
-    socket.room = roomName;
-    callback(roomName);
-    console.log(`Salle créée : ${roomName}`);
+    rooms[roomName] = {
+      dj: socket.id,
+      players: {},
+      buzzed: false
+    };
+    console.log(`Room créée : ${roomName}`);
   });
 
-  socket.on('join-room', ({ room, name }) => {
+  // Un joueur rejoint une room
+  socket.on('joinRoom', ({ room, name }) => {
     if (!rooms[room]) {
-      rooms[room] = { firstBuzzer: null };
+      rooms[room] = {
+        dj: null,
+        players: {},
+        buzzed: false
+      };
     }
     socket.join(room);
-    socket.room = room;
-    socket.username = name || socket.id;
-    console.log(`${socket.username} a rejoint la salle ${room}`);
+    rooms[room].players[socket.id] = name;
+    console.log(`${name} a rejoint la room ${room}`);
   });
 
-  socket.on('buzz', () => {
-    const room = socket.room;
-    if (!room || !rooms[room]) return;
-
-    if (!rooms[room].firstBuzzer) {
-      rooms[room].firstBuzzer = socket.username || socket.id;
-      io.to(room).emit('buzzed', { name: rooms[room].firstBuzzer });
+  // Un joueur buzz
+  socket.on('buzz', ({ room, name }) => {
+    if (!rooms[room]) return;
+    if (!rooms[room].buzzed) {
+      rooms[room].buzzed = true;
+      io.to(room).emit('buzzed', { name });
+      console.log(`${name} a buzzé en premier dans la room ${room}`);
     }
   });
 
-  socket.on('reset-buzz', () => {
-    const room = socket.room;
-    if (room && rooms[room]) {
-      rooms[room].firstBuzzer = null;
-      io.to(room).emit('reset');
-      console.log(`Reset de la salle ${room}`);
-    }
-  });
-
+  // Déconnexion
   socket.on('disconnect', () => {
-    console.log(`Déconnexion de ${socket.username || socket.id}`);
+    for (const room in rooms) {
+      delete rooms[room].players?.[socket.id];
+      // Optionnel : supprimer la room si plus personne ?
+    }
+    console.log('User disconnected:', socket.id);
   });
 });
 
+// Lancement du serveur
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
