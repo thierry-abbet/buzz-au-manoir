@@ -1,86 +1,74 @@
-const express = require("express");
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+const crypto = require('crypto');
+
 const app = express();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
-const path = require("path");
+const server = http.createServer(app);
+const io = new Server(server);
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 
-// Dictionnaire des parties : { codePartie: { joueurs: [], aBuzzé: false } }
-const parties = {};
+// Stockage des parties
+const parties = {}; // { codePartie: { clients: [], buzzed: false, leader: socket.id } }
 
-app.use(express.static(path.join(__dirname, "../client")));
+app.use(express.static(path.join(__dirname, '../client')));
 
-io.on("connection", (socket) => {
-  console.log("Un joueur s'est connecté");
+// Création d'une nouvelle partie
+app.get('/new', (req, res) => {
+  const code = crypto.randomBytes(3).toString('base64url').replace(/[^a-zA-Z0-9]/g, '').slice(0, 6);
+  parties[code] = { clients: [], buzzed: false };
+  res.json({ code });
+});
 
-  // Rejoindre une partie
-  socket.on("joinRoom", ({ pseudo, room }) => {
-    socket.join(room);
+// Connexion des sockets
+io.on('connection', socket => {
+  console.log('Nouvelle connexion :', socket.id);
+
+  socket.on('join', ({ code, pseudo }) => {
+    if (!parties[code]) {
+      socket.emit('error_message', 'Partie introuvable.');
+      return;
+    }
+
+    socket.join(code);
+    socket.code = code;
     socket.pseudo = pseudo;
-    socket.room = room;
 
-    if (!parties[room]) {
-      parties[room] = { joueurs: [], aBuzzé: false };
-    }
-
-    parties[room].joueurs.push(socket);
-
-    console.log(`> ${pseudo} a rejoint la partie ${room}`);
-    socket.emit("joined", { pseudo, room });
+    parties[code].clients.push(socket);
+    console.log(`${pseudo} a rejoint la partie ${code}`);
   });
 
-  // Gestion du buzz
-  socket.on("buzz", ({ pseudo, room }) => {
-    const partie = parties[room];
+  socket.on('buzz', () => {
+    const code = socket.code;
+    if (!code || !parties[code] || parties[code].buzzed) return;
 
-    if (partie && !partie.aBuzzé) {
-      partie.aBuzzé = true;
-      console.log(`💥 BUZZ ! ${pseudo} dans la partie ${room}`);
-      io.to(room).emit("buzzed", { pseudo });
-    }
+    parties[code].buzzed = true;
+
+    // Annonce du plus rapide
+    io.to(code).emit('buzzed', { name: socket.pseudo });
+
+    // Optionnel : réinitialisation automatique après x secondes ?
   });
 
-  // Réinitialisation depuis le DJ
-  socket.on("reset", ({ room }) => {
-    if (parties[room]) {
-      parties[room].aBuzzé = false;
-      io.to(room).emit("resetBuzz");
-      console.log(`🔄 Reset du buzz dans la partie ${room}`);
-    }
+  socket.on('reset', () => {
+    const code = socket.code;
+    if (!code || !parties[code]) return;
+
+    parties[code].buzzed = false;
+    io.to(code).emit('reset');
   });
 
-  // Création de partie par le DJ
-  socket.on("createRoom", () => {
-    const roomCode = generateRoomCode();
-    parties[roomCode] = { joueurs: [], aBuzzé: false };
-    socket.emit("roomCreated", { room: roomCode });
-    console.log(`🏪 Partie créée : ${roomCode}`);
-  });
+  socket.on('disconnect', () => {
+    const code = socket.code;
+    if (!code || !parties[code]) return;
 
-  // Déconnexion
-  socket.on("disconnect", () => {
-    const { room } = socket;
-    if (room && parties[room]) {
-      parties[room].joueurs = parties[room].joueurs.filter((s) => s !== socket);
-      console.log(`${socket.pseudo} a quitté la partie ${room}`);
-
-      if (parties[room].joueurs.length === 0) {
-        delete parties[room]; // Nettoyage
-        console.log(`🪩 Partie ${room} supprimée car vide`);
-      }
+    parties[code].clients = parties[code].clients.filter(s => s !== socket);
+    if (parties[code].clients.length === 0) {
+      delete parties[code];
     }
   });
 });
 
-function generateRoomCode() {
-  const adjectives = ["epic", "mystic", "crazy", "wild", "silly"];
-  const nouns = ["goblin", "dragon", "wizard", "bard", "orc"];
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  return `${adj}-${noun}-${Math.floor(Math.random() * 1000)}`;
-}
-
-http.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`✅ Serveur en ligne sur le port ${PORT}`));
