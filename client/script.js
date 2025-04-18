@@ -1,23 +1,58 @@
 let socket;
-let codePartie = '';
-let pseudo = '';
+let playerName = '';
+let gameCode = '';
 
+// Pages
+const pageStart = document.getElementById('page-start');
+const pageGame = document.getElementById('page-game');
+
+// Formulaire
+const createForm = document.getElementById('create-form');
+const joinForm = document.getElementById('join-form');
+
+// Champs
+const createName = document.getElementById('create-name');
+const joinName = document.getElementById('join-name');
+const joinCode = document.getElementById('join-code');
+
+// Bouton buzzer
 const buzzer = document.getElementById('buzzer');
 const status = document.getElementById('status');
-const joinForm = document.getElementById('join-form');
-const mainUI = document.getElementById('main-ui');
-const codeDisplay = document.getElementById('code-display');
 
-joinForm.addEventListener('submit', async e => {
+// Cacher la page de jeu au début
+pageGame.style.display = 'none';
+
+// Création de partie
+createForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  codePartie = document.getElementById('code').value.trim().toUpperCase();
-  pseudo = document.getElementById('pseudo').value.trim();
-  if (!codePartie || !pseudo) return alert('Remplis tous les champs');
-
+  playerName = createName.value.trim();
+  if (!playerName) return;
   socket = io();
+  socket.emit('create-game', playerName);
+  setupSocket();
+});
 
-  socket.on('connect', () => {
-    socket.emit('join', { code: codePartie, pseudo });
+// Rejoindre une partie
+joinForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  playerName = joinName.value.trim();
+  gameCode = joinCode.value.trim().toLowerCase();
+  if (!playerName || !gameCode) return;
+  socket = io();
+  socket.emit('join-game', { gameCode, playerName });
+  setupSocket();
+});
+
+function setupSocket() {
+  socket.on('game-created', (code) => {
+    gameCode = code;
+    status.textContent = `Partie créée : ${gameCode}`;
+    switchToGamePage();
+  });
+
+  socket.on('game-joined', () => {
+    status.textContent = `Connecté à la partie ${gameCode}`;
+    switchToGamePage();
   });
 
   socket.on('buzzed', data => {
@@ -27,26 +62,29 @@ joinForm.addEventListener('submit', async e => {
   });
 
   socket.on('reset', () => {
-    status.textContent = 'En attente du buzz...';
     buzzer.disabled = false;
     buzzer.classList.remove('buzzed');
+    status.textContent = 'En attente du buzz...';
   });
 
-  socket.on('error_message', msg => {
+  socket.on('error-message', msg => {
     alert(msg);
   });
+}
 
-  joinForm.style.display = 'none';
-  mainUI.style.display = 'block';
-  codeDisplay.textContent = `Code de la partie : ${codePartie}`;
-});
+function switchToGamePage() {
+  pageStart.style.display = 'none';
+  pageGame.style.display = 'block';
+}
 
+// Buzzer
 buzzer.addEventListener('click', () => {
-  socket.emit('buzz');
+  socket.emit('buzz', { gameCode, name: playerName });
   buzzer.disabled = true;
   status.textContent = 'Buzz envoyé !';
 });
 
+// Confettis
 function showConfetti() {
   const confetti = document.createElement('div');
   confetti.classList.add('confetti');
