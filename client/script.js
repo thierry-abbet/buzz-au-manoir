@@ -1,59 +1,55 @@
 const socket = io();
-const buzzer = document.getElementById('buzzer');
-const status = document.getElementById('status');
-const info = document.getElementById('info');
 
-// Extraire les paramètres de l’URL
-const params = new URLSearchParams(window.location.search);
-const isDJ = params.get('dj') === 'true';
-let room = params.get('room');
-let playerName = localStorage.getItem('playerName');
+// Cherche les paramètres dans l'URL
+const urlParams = new URLSearchParams(window.location.search);
+const isDJ = urlParams.get('dj') === 'true';
+const roomCodeDisplay = document.getElementById('room-code');
 
-if (!room && isDJ) {
-  // DJ crée une room
-  fetch('/generate-room')
-    .then(res => res.json())
-    .then(data => {
-      room = data.room;
-      info.innerHTML = `<strong>Nom de la partie :</strong> ${room}`;
-      socket.emit('join', { room, name: 'DJ' });
-    });
-} else if (room) {
-  // Client rejoint une room
-  if (!playerName) {
-    playerName = prompt('Entrez votre pseudo :') || `Joueur_${Math.floor(Math.random() * 1000)}`;
-    localStorage.setItem('playerName', playerName);
+let roomCode = null;
+
+if (isDJ) {
+  socket.emit('createRoom');
+
+  socket.on('roomCreated', (code) => {
+    roomCode = code;
+    if (roomCodeDisplay) {
+      roomCodeDisplay.textContent = `Nom de la salle : ${roomCode}`;
+    }
+  });
+} else {
+  // Pour les clients qui rejoignent
+  const pseudo = prompt("Entrez votre pseudo :");
+  const code = prompt("Entrez le nom de la salle :");
+  roomCode = code;
+  socket.emit('joinRoom', { code, pseudo });
+
+  if (roomCodeDisplay) {
+    roomCodeDisplay.textContent = `Salle rejointe : ${roomCode}`;
   }
-  info.innerHTML = `<strong>Partie :</strong> ${room}`;
-  socket.emit('join', { room, name: playerName });
 }
 
-// Buzz
-buzzer.addEventListener('click', () => {
-  socket.emit('buzz', { room, name: isDJ ? 'DJ' : playerName });
-  buzzer.disabled = true;
-  status.textContent = 'Buzz envoyé !';
-});
+// Buzzer
+const buzzer = document.getElementById('buzzer');
+if (buzzer) {
+  buzzer.addEventListener('click', () => {
+    if (roomCode) {
+      socket.emit('buzz', { code: roomCode, pseudo: "Anonyme" });
+    }
+  });
+}
 
 // Réception du buzz
-socket.on('buzzed', data => {
-  status.textContent = `Le plus rapide : ${data.name}`;
-  buzzer.classList.add('buzzed');
-  showConfetti();
+socket.on('buzzed', ({ pseudo }) => {
+  const buzzDisplay = document.getElementById('buzz-result');
+  if (buzzDisplay) {
+    buzzDisplay.textContent = `${pseudo} a buzzé en premier ! 🎉`;
+  }
 });
 
-// Réinitialisation (par DJ)
+// Réinitialisation
 socket.on('reset', () => {
-  buzzer.disabled = false;
-  buzzer.classList.remove('buzzed');
-  status.textContent = 'En attente du buzz...';
+  const buzzDisplay = document.getElementById('buzz-result');
+  if (buzzDisplay) {
+    buzzDisplay.textContent = 'En attente du buzz...';
+  }
 });
-
-function showConfetti() {
-  const confetti = document.createElement('div');
-  confetti.classList.add('confetti');
-  confetti.style.left = `${Math.random() * 100}%`;
-  confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
-  document.body.appendChild(confetti);
-  setTimeout(() => confetti.remove(), 3000);
-}
