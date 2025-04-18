@@ -9,9 +9,24 @@
 </head>
 <body>
   <div class="container">
-    <h1>Buzz au Manoir</h1>
-    <p id="status">Connexion en cours...</p>
-    <button id="buzzer">🔴 Buzzer !</button>
+
+    <!-- Formulaire pour rejoindre une partie -->
+    <form id="join-form">
+      <h1>Rejoindre une partie</h1>
+      <label for="code">Code de la partie :</label>
+      <input type="text" id="code" placeholder="Ex: DRAG1" required />
+      <label for="pseudo">Ton pseudo :</label>
+      <input type="text" id="pseudo" placeholder="Ex: Loulou42" required />
+      <button type="submit">Rejoindre</button>
+    </form>
+
+    <!-- Interface principale du buzzer -->
+    <div id="main-ui" style="display: none;">
+      <h2 id="code-display"></h2>
+      <button id="buzzer">🔴 Buzzer !</button>
+      <p id="status">En attente du buzz...</p>
+    </div>
+
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
