@@ -2,85 +2,69 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const { nanoid } = require('nanoid');
+const { customAlphabet } = require('nanoid');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const PORT = process.env.PORT || 10000;
+const port = process.env.PORT || 3000;
 
-// Stockage des parties
-const games = {};
-
-// Serve le client
+// Middleware static
 app.use(express.static(path.join(__dirname, '../client')));
 
-io.on('connection', (socket) => {
-  console.log('Nouvelle connexion');
+// Liste de noms marrants pour les rooms
+const adjectives = ['gros', 'petit', 'rapide', 'fourbe', 'rouge', 'bruyant', 'ivre'];
+const animals = ['pigeon', 'gobelin', 'licorne', 'raton', 'dragon', 'krokmou', 'crapaud'];
 
-  // Création d'une nouvelle partie
-  socket.on('create-game', (playerName) => {
-    const code = nanoid(6).toLowerCase();
-    games[code] = {
-      host: socket.id,
-      players: {},
-      buzzed: false,
-    };
-    games[code].players[socket.id] = playerName;
-    socket.join(code);
-    socket.emit('game-created', code);
-    console.log(`Partie créée : ${code} par ${playerName}`);
+// Générateur de nom de room
+function generateRoomName() {
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const animal = animals[Math.floor(Math.random() * animals.length)];
+  return `${adj}-${animal}-${Math.floor(Math.random() * 100)}`;
+}
+
+// Endpoint pour créer une room
+app.get('/generate-room', (req, res) => {
+  const room = generateRoomName();
+  res.json({ room });
+});
+
+// Logique des rooms
+const buzzedRooms = {};
+
+io.on('connection', socket => {
+  socket.on('join', ({ room, name }) => {
+    socket.join(room);
+    socket.data = { room, name };
+    console.log(`${name} a rejoint la salle ${room}`);
   });
 
-  // Rejoindre une partie existante
-  socket.on('join-game', ({ gameCode, playerName }) => {
-    const game = games[gameCode];
-    if (!game) {
-      socket.emit('error-message', 'Partie introuvable');
-      return;
+  socket.on('buzz', ({ room, name }) => {
+    if (!buzzedRooms[room]) {
+      buzzedRooms[room] = true;
+      io.to(room).emit('buzzed', { name });
+      console.log(`${name} a buzzé dans ${room}`);
     }
-    game.players[socket.id] = playerName;
-    socket.join(gameCode);
-    socket.emit('game-joined');
-    console.log(`${playerName} a rejoint la partie ${gameCode}`);
   });
 
-  // Gestion du buzz
-  socket.on('buzz', ({ gameCode, name }) => {
-    const game = games[gameCode];
-    if (!game || game.buzzed) return;
-    game.buzzed = true;
-    io.to(gameCode).emit('buzzed', { name });
-    console.log(`${name} a buzzé dans la partie ${gameCode}`);
+  socket.on('reset', () => {
+    const room = socket.data?.room;
+    if (room) {
+      buzzedRooms[room] = false;
+      io.to(room).emit('reset');
+      console.log(`Reset dans la salle ${room}`);
+    }
   });
 
-  // Réinitialiser le buzz (par l’hôte plus tard)
-  socket.on('reset', (gameCode) => {
-    const game = games[gameCode];
-    if (!game) return;
-    game.buzzed = false;
-    io.to(gameCode).emit('reset');
-  });
-
-  // Déconnexion
   socket.on('disconnect', () => {
-    for (const code in games) {
-      const game = games[code];
-      if (game.players[socket.id]) {
-        console.log(`${game.players[socket.id]} a quitté la partie ${code}`);
-        delete game.players[socket.id];
-
-        // Si l'hôte quitte, supprimer la partie
-        if (socket.id === game.host) {
-          delete games[code];
-          console.log(`Partie ${code} supprimée (hôte déconnecté)`);
-        }
-      }
+    const { room, name } = socket.data || {};
+    if (room && name) {
+      console.log(`${name} a quitté la salle ${room}`);
     }
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(port, () => {
+  console.log(`Serveur lancé sur le port ${port}`);
 });
