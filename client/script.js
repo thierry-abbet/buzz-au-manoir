@@ -1,76 +1,65 @@
-let socket;
-let currentRoom = '';
-let username = '';
+const socket = io();
 
-document.addEventListener('DOMContentLoaded', () => {
-  const createBtn = document.getElementById('create-room');
-  const joinBtn = document.getElementById('join-room');
-  const roomDisplay = document.getElementById('room-name');
-  const buzzer = document.getElementById('buzzer');
-  const status = document.getElementById('status');
+// Récupération des éléments HTML
+const createBtn = document.getElementById('createRoom');
+const createdRoomCode = document.getElementById('createdRoomCode');
+const joinBtn = document.getElementById('joinRoom');
+const roomInput = document.getElementById('roomCode');
+const nameInput = document.getElementById('playerName');
+const buzzer = document.getElementById('buzzer');
+const status = document.getElementById('status');
+const gameSection = document.getElementById('game-section');
 
-  createBtn.addEventListener('click', () => {
-    socket = io();
-    socket.emit('createRoom');
+// Nom de la room et pseudo
+let roomName = '';
+let playerName = '';
 
-    socket.on('roomCreated', roomName => {
-      currentRoom = roomName;
-      username = 'DJ';
-      roomDisplay.textContent = `Salle : ${roomName} (DJ)`;
-      status.textContent = 'Salle créée. En attente de joueurs...';
-      buzzer.disabled = false;
-    });
+// Générateur de noms marrants
+function generateFunnyName() {
+  const adjectives = ['Sombre', 'Velu', 'Mystique', 'Flamboyant', 'Moisi', 'Étrange'];
+  const nouns = ['Sanglier', 'Gobelin', 'Nain', 'Poney', 'Chaudron', 'Grimoire'];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  return `${adj}${noun}${Math.floor(Math.random() * 1000)}`;
+}
 
-    registerBuzzEvents();
-  });
+// Création de la room
+createBtn.addEventListener('click', () => {
+  roomName = generateFunnyName();
+  playerName = 'DJ';
+  socket.emit('createRoom', roomName);
+  createdRoomCode.textContent = `Code de la partie : ${roomName}`;
+  gameSection.style.display = 'block';
+});
 
-  joinBtn.addEventListener('click', () => {
-    const roomInput = document.getElementById('room-input').value.trim();
-    const nameInput = document.getElementById('name-input').value.trim();
-
-    if (!roomInput || !nameInput) {
-      alert('Merci d’entrer un nom de salle et un pseudo.');
-      return;
-    }
-
-    socket = io();
-    socket.emit('joinRoom', { roomName: roomInput, username: nameInput });
-
-    socket.on('roomJoined', roomName => {
-      currentRoom = roomName;
-      username = nameInput;
-      roomDisplay.textContent = `Salle : ${roomName} (Joueur : ${username})`;
-      status.textContent = 'Connecté. Appuie pour buzzer !';
-      buzzer.disabled = false;
-    });
-
-    socket.on('roomError', msg => {
-      alert(msg);
-    });
-
-    registerBuzzEvents();
-  });
-
-  function registerBuzzEvents() {
-    buzzer.addEventListener('click', () => {
-      if (socket && currentRoom) {
-        socket.emit('buzz', { room: currentRoom, name: username });
-        buzzer.disabled = true;
-        status.textContent = 'Buzz envoyé !';
-      }
-    });
-
-    socket.on('buzzed', data => {
-      status.textContent = `Le plus rapide : ${data.name}`;
-      buzzer.classList.add('buzzed');
-      showConfetti();
-    });
-  }
-
-  function showConfetti() {
-    const confetti = document.createElement('div');
-    confetti.classList.add('confetti');
-    document.body.appendChild(confetti);
-    setTimeout(() => confetti.remove(), 3000);
+// Rejoindre une partie
+joinBtn.addEventListener('click', () => {
+  roomName = roomInput.value.trim();
+  playerName = nameInput.value.trim();
+  if (roomName && playerName) {
+    socket.emit('joinRoom', { room: roomName, name: playerName });
+    gameSection.style.display = 'block';
   }
 });
+
+// Gestion du bouton buzzer
+buzzer.addEventListener('click', () => {
+  socket.emit('buzz', { room: roomName, name: playerName });
+  buzzer.disabled = true;
+  status.textContent = 'Buzz envoyé !';
+});
+
+// Affichage du plus rapide
+socket.on('buzzed', data => {
+  status.textContent = `Le plus rapide : ${data.name}`;
+  buzzer.classList.add('buzzed');
+  showConfetti();
+});
+
+// Fonction d’effet confettis
+function showConfetti() {
+  const confetti = document.createElement('div');
+  confetti.classList.add('confetti');
+  document.body.appendChild(confetti);
+  setTimeout(() => confetti.remove(), 3000);
+}
