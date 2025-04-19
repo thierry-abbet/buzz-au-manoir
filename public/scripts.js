@@ -1,57 +1,67 @@
 // public/scripts.js
 
-const socket = io();
-const params = new URLSearchParams(window.location.search);
-let roomName = params.get("name");
-const isDj = params.get("dj") === "true";
+document.addEventListener("DOMContentLoaded", async () => {
+  const isDj = new URLSearchParams(window.location.search).get("dj") === "true";
+  const socket = io();
 
-const displayRoom = document.getElementById("room-name");
-const status = document.getElementById("status");
-const buzzButton = document.getElementById("buzz");
+  const roomNameElem = document.getElementById("roomName");
+  const buzzButton = document.getElementById("buzzButton");
+  const statusText = document.getElementById("status");
 
-// 🔠 Normalisation du nom de salle
-if (roomName) {
-  roomName = roomName.charAt(0).toUpperCase() + roomName.slice(1).toLowerCase();
-}
+  if (isDj) {
+    // DJ crée la salle
+    socket.emit("createRoom");
 
-// 🧾 Affichage du nom de la salle
-if (roomName && displayRoom) {
-  displayRoom.innerText = `Salle : ${roomName}`;
-}
+    socket.on("roomCreated", (roomName) => {
+      roomNameElem.textContent = roomName;
+      socket.emit("joinRoom", { room: roomName, name: "DJ", isDj: true });
+    });
 
-// 🔔 Buzz
-if (buzzButton) {
-  buzzButton.addEventListener("click", () => {
-    socket.emit("buzz");
-  });
-}
+    socket.on("buzz", (name) => {
+      statusText.textContent = `${name} a buzzé en premier ! 🎉`;
+    });
 
-// 👥 Connexion
-if (!isDj) {
-  if (!roomName) {
-    alert("Nom de salle manquant !");
-    window.location.href = "/";
+    buzzButton.addEventListener("click", () => {
+      socket.emit("buzz");
+    });
   } else {
-    // ⚠️ Vérification si la salle existe avant de demander le pseudo
-    socket.emit("joinRoom", { room: roomName, name: null, isDj: false });
+    // Côté joueur
+    const lobby = document.getElementById("lobby");
+    const joinBtn = document.getElementById("joinBtn");
+
+    joinBtn.addEventListener("click", () => {
+      let inputRoom = document.getElementById("roomInput").value.trim();
+
+      // Auto-correction : première lettre majuscule, le reste en minuscule
+      inputRoom = inputRoom.charAt(0).toUpperCase() + inputRoom.slice(1).toLowerCase();
+
+      if (!inputRoom) return alert("Veuillez entrer un nom de partie.");
+
+      // Vérifie que la salle existe avant de demander le pseudo
+      socket.emit("checkRoom", inputRoom, (exists) => {
+        if (!exists) {
+          alert("Cette salle n'existe pas !");
+          return;
+        }
+
+        const name = prompt("Entrez votre prénom :").trim();
+        if (!name) return;
+
+        socket.emit("joinRoom", { room: inputRoom, name, isDj: false });
+
+        // Cache le lobby et montre la salle
+        lobby.style.display = "none";
+        roomNameElem.textContent = inputRoom;
+        document.getElementById("room").style.display = "block";
+      });
+    });
+
+    socket.on("buzz", (name) => {
+      statusText.textContent = `${name} a buzzé !`;
+    });
+
+    buzzButton.addEventListener("click", () => {
+      socket.emit("buzz");
+    });
   }
-} else {
-  socket.emit("joinRoom", { room: roomName, name: "DJ", isDj: true });
-}
-
-// 📢 Réception buzz
-socket.on("buzz", (name) => {
-  status.innerText = `${name} a buzzé en premier ! 🎉`;
-});
-
-// ❌ Salle introuvable
-socket.on("roomNotFound", () => {
-  alert("Salle introuvable.");
-  window.location.href = "/";
-});
-
-// ✅ Salle OK, demande le nom après vérification
-socket.on("roomOk", () => {
-  const userName = prompt("Entrez votre prénom :");
-  socket.emit("joinRoom", { room: roomName, name: userName, isDj: false });
 });
