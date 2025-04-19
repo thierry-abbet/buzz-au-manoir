@@ -1,4 +1,5 @@
-// public/script.js
+// public/scripts.js
+
 const socket = io();
 
 const params = new URLSearchParams(window.location.search);
