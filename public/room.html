@@ -1,22 +1,20 @@
+<!-- public/room.html -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Buzz au Manoir</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
     <h1>Buzz au Manoir</h1>
-
-    <!-- Affichage du code de la salle -->
-    <p id="room-code" style="font-weight: bold; font-size: 1.2em;"></p>
-
-    <button id="buzzer">BUZZ</button>
-    <p id="buzz-result">En attente du buzz...</p>
+    <div id="roomInfo"></div>
+    <button id="buzzBtn">BUZZ</button>
+    <p id="status">En attente du buzz...</p>
+    <button id="resetBtn" style="display:none">Réinitialiser</button>
   </div>
-
   <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>
 </body>
