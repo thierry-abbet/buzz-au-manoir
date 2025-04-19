@@ -2,52 +2,75 @@
 
 const socket = io();
 
-const params = new URLSearchParams(window.location.search);
-const isDJ = params.get("dj") === "true";
-const roomName = params.get("room");
+// ===============
+// UTILITAIRES
+// ===============
 
-const buzzBtn = document.getElementById("buzzBtn");
-const status = document.getElementById("status");
-const resetBtn = document.getElementById("resetBtn");
-const roomInfo = document.getElementById("roomInfo");
-
-if (isDJ) {
-  socket.emit("create-room");
-  socket.on("room-created", (name) => {
-    roomInfo.innerText = `Nom de la salle : ${name}`;
-    resetBtn.style.display = "inline-block";
-    buzzBtn.disabled = true;
-  });
-} else if (roomName) {
-  const pseudo = prompt("Entrez votre pseudo");
-  socket.emit("join-room", { roomName, pseudo });
-  roomInfo.innerText = `Salle : ${roomName}`;
+function formatRoomName(input) {
+  if (!input) return "";
+  return input.charAt(0).toUpperCase() + input.slice(1).toLowerCase();
 }
 
-buzzBtn.addEventListener("click", () => {
-  socket.emit("buzz", { roomName, pseudo: null });
-});
+// ===============
+// PAGE LOBBY
+// ===============
 
-resetBtn.addEventListener("click", () => {
-  socket.emit("reset", roomInfo.innerText.split(" ")[3]);
-});
+const createBtn = document.getElementById("create-room");
+const joinBtn = document.getElementById("join-room");
+const roomInput = document.getElementById("room-name");
 
-socket.on("buzzed", (pseudo) => {
-  status.innerText = `${pseudo} a buzzé !`;
-  buzzBtn.disabled = true;
-});
+if (createBtn && joinBtn && roomInput) {
+  roomInput.addEventListener("input", () => {
+    roomInput.value = formatRoomName(roomInput.value);
+  });
 
-socket.on("reset-buzz", () => {
-  status.innerText = "En attente du buzz...";
-  buzzBtn.disabled = false;
-});
+  createBtn.addEventListener("click", () => {
+    window.location.href = "/room?dj=true";
+  });
 
-socket.on("room-error", (msg) => {
-  alert(msg);
-  window.location.href = "/";
-});
+  joinBtn.addEventListener("click", () => {
+    const room = formatRoomName(roomInput.value.trim());
+    if (!room) return alert("Veuillez entrer un nom de salle.");
 
-socket.on("room-closed", () => {
-  alert("La partie a été fermée.");
-  window.location.href = "/";
+    // Vérifier si la salle existe avant de demander le pseudo
+    socket.emit("check-room", room, (exists) => {
+      if (!exists) {
+        alert("Cette salle n'existe pas.");
+        return;
+      }
+
+      const pseudo = prompt("Entrez votre pseudo :");
+      if (!pseudo) return;
+
+      window.location.href = `/room?room=${room}&pseudo=${encodeURIComponent(pseudo)}`;
+    });
+  });
+}
+
+// ===============
+// PAGE ROOM
+// ===============
+
+const buzzerBtn = document.getElementById("buzzer");
+const buzzMessage = document.getElementById("buzz-message");
+
+const params = new URLSearchParams(window.location.search);
+const isDj = params.get("dj") === "true";
+const room = formatRoomName(params.get("room"));
+const pseudo = params.get("pseudo") || "Anonyme";
+
+if (room) {
+  socket.emit("join-room", { room, pseudo, isDj });
+}
+
+if (buzzerBtn) {
+  buzzerBtn.addEventListener("click", () => {
+    socket.emit("buzz", room);
+  });
+}
+
+socket.on("buzz", (name) => {
+  if (buzzMessage) {
+    buzzMessage.textContent = `${name} a buzzé en premier ! 🎉`;
+  }
 });
