@@ -1,55 +1,52 @@
+// public/script.js
 const socket = io();
 
-// Cherche les paramètres dans l'URL
-const urlParams = new URLSearchParams(window.location.search);
-const isDJ = urlParams.get('dj') === 'true';
-const roomCodeDisplay = document.getElementById('room-code');
+const params = new URLSearchParams(window.location.search);
+const isDJ = params.get("dj") === "true";
+const roomName = params.get("room");
 
-let roomCode = null;
+const buzzBtn = document.getElementById("buzzBtn");
+const status = document.getElementById("status");
+const resetBtn = document.getElementById("resetBtn");
+const roomInfo = document.getElementById("roomInfo");
 
 if (isDJ) {
-  socket.emit('createRoom');
-
-  socket.on('roomCreated', (code) => {
-    roomCode = code;
-    if (roomCodeDisplay) {
-      roomCodeDisplay.textContent = `Nom de la salle : ${roomCode}`;
-    }
+  socket.emit("create-room");
+  socket.on("room-created", (name) => {
+    roomInfo.innerText = `Nom de la salle : ${name}`;
+    resetBtn.style.display = "inline-block";
+    buzzBtn.disabled = true;
   });
-} else {
-  // Pour les clients qui rejoignent
-  const pseudo = prompt("Entrez votre pseudo :");
-  const code = prompt("Entrez le nom de la salle :");
-  roomCode = code;
-  socket.emit('joinRoom', { code, pseudo });
-
-  if (roomCodeDisplay) {
-    roomCodeDisplay.textContent = `Salle rejointe : ${roomCode}`;
-  }
+} else if (roomName) {
+  const pseudo = prompt("Entrez votre pseudo");
+  socket.emit("join-room", { roomName, pseudo });
+  roomInfo.innerText = `Salle : ${roomName}`;
 }
 
-// Buzzer
-const buzzer = document.getElementById('buzzer');
-if (buzzer) {
-  buzzer.addEventListener('click', () => {
-    if (roomCode) {
-      socket.emit('buzz', { code: roomCode, pseudo: "Anonyme" });
-    }
-  });
-}
-
-// Réception du buzz
-socket.on('buzzed', ({ pseudo }) => {
-  const buzzDisplay = document.getElementById('buzz-result');
-  if (buzzDisplay) {
-    buzzDisplay.textContent = `${pseudo} a buzzé en premier ! 🎉`;
-  }
+buzzBtn.addEventListener("click", () => {
+  socket.emit("buzz", { roomName, pseudo: null });
 });
 
-// Réinitialisation
-socket.on('reset', () => {
-  const buzzDisplay = document.getElementById('buzz-result');
-  if (buzzDisplay) {
-    buzzDisplay.textContent = 'En attente du buzz...';
-  }
+resetBtn.addEventListener("click", () => {
+  socket.emit("reset", roomInfo.innerText.split(" ")[3]);
+});
+
+socket.on("buzzed", (pseudo) => {
+  status.innerText = `${pseudo} a buzzé !`;
+  buzzBtn.disabled = true;
+});
+
+socket.on("reset-buzz", () => {
+  status.innerText = "En attente du buzz...";
+  buzzBtn.disabled = false;
+});
+
+socket.on("room-error", (msg) => {
+  alert(msg);
+  window.location.href = "/";
+});
+
+socket.on("room-closed", () => {
+  alert("La partie a été fermée.");
+  window.location.href = "/";
 });
