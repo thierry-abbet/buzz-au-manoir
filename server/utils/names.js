@@ -1,13 +1,14 @@
 // 📁 server/utils/names.js
 
-const noms = [
-  'tonneau', 'bière', 'gobelin', 'nain', 'taverne', 'pinte', 'chope', 'grimoire',
-  'chopine', 'cochon', 'barde', 'crâne', 'lutin', 'hydromel', 'gnome', 'chaudron'
+const names = [
+  "tonneau", "biere", "gobelin", "nain", "taverne", "choppe", "gnôle",
+  "grimoire", "soulerie", "bardasse", "mirobolant", "bouzin", "flasque",
+  "guinde", "cervoise", "jambonneau", "torchon", "pinte", "galopin", "sauciflard"
 ];
 
-function generateFunnyName() {
-  const index = Math.floor(Math.random() * noms.length);
-  return noms[index];
+function generateRoomName() {
+  const index = Math.floor(Math.random() * names.length);
+  return names[index];
 }
 
-module.exports = { generateFunnyName };
+module.exports = { generateRoomName };
