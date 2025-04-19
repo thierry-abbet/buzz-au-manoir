@@ -1,33 +1,30 @@
+<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Buzz au Manoir</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
     <h1>Buzz au Manoir</h1>
-    <div class="lobby">
-      <button id="create">🎲 Créer une partie</button>
-      <div class="join-section">
-        <input type="text" id="roomInput" placeholder="Nom de la partie" />
-        <button id="join">🔑 Rejoindre</button>
-      </div>
+    <div class="lobby-buttons">
+      <button id="createBtn">Créer une partie</button>
+      <button id="joinBtn">Rejoindre une partie</button>
     </div>
   </div>
 
   <script>
-    document.getElementById('create').addEventListener('click', () => {
+    document.getElementById('createBtn').addEventListener('click', () => {
       window.location.href = '/room?dj=true';
     });
 
-    document.getElementById('join').addEventListener('click', () => {
-      const room = document.getElementById('roomInput').value.trim();
+    document.getElementById('joinBtn').addEventListener('click', () => {
+      const room = prompt("Nom de la partie ?");
       if (room) {
-        window.location.href = `/room?room=${encodeURIComponent(room)}`;
+        window.location.href = `/room?room=${room}`;
       }
     });
   </script>
