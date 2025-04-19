@@ -1,14 +1,11 @@
-// 📁 server/utils/names.js
-
-const names = [
-  "tonneau", "biere", "gobelin", "nain", "taverne", "choppe", "gnôle",
-  "grimoire", "soulerie", "bardasse", "mirobolant", "bouzin", "flasque",
-  "guinde", "cervoise", "jambonneau", "torchon", "pinte", "galopin", "sauciflard"
+const roomNames = [
+  "Tonneau", "Gobelet", "Nain", "Pinte", "Chope", "Tavernier", "Goulet",
+  "Mousse", "Poivrot", "Troll", "Taverne", "Rôti", "Sauciflard", "Sanglier"
 ];
 
 function generateRoomName() {
-  const index = Math.floor(Math.random() * names.length);
-  return names[index];
+  const index = Math.floor(Math.random() * roomNames.length);
+  return roomNames[index];
 }
 
 module.exports = { generateRoomName };
