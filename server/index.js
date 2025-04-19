@@ -1,62 +1,66 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
-const { nanoid } = require('nanoid');
+// server/index.js
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
+const { generateRoomName } = require("./utils/names");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const parties = {}; // { roomCode: { djId, clients: [] } }
+const rooms = {};
 
-app.use(express.static(path.join(__dirname, '../public')));
-//app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, "../public")));
 
-// Redirige /room vers le bon fichier room.html
-app.get('/room', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/room.html'));
+app.get("/room", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/room.html"));
 });
 
-io.on('connection', (socket) => {
-  console.log('Nouvelle connexion :', socket.id);
-
-  socket.on('createRoom', () => {
-    const code = nanoid(6);
-    parties[code] = { djId: socket.id, clients: [] };
-    socket.join(code);
-    socket.emit('roomCreated', code);
-    console.log(`Salle créée : ${code}`);
+io.on("connection", (socket) => {
+  socket.on("create-room", () => {
+    const roomName = generateRoomName();
+    rooms[roomName] = { dj: socket.id, clients: [] };
+    socket.join(roomName);
+    socket.emit("room-created", roomName);
   });
 
-  socket.on('joinRoom', ({ code, pseudo }) => {
-    const party = parties[code];
-    if (party) {
-      socket.join(code);
-      party.clients.push({ id: socket.id, pseudo });
-      socket.emit('joinedRoom', { code });
-    } else {
-      socket.emit('error', 'Salle introuvable');
+  socket.on("join-room", ({ roomName, pseudo }) => {
+    if (!rooms[roomName]) return socket.emit("room-error", "Room not found");
+    rooms[roomName].clients.push({ id: socket.id, pseudo });
+    socket.join(roomName);
+    socket.to(roomName).emit("user-joined", pseudo);
+  });
+
+  socket.on("buzz", ({ roomName, pseudo }) => {
+    if (!rooms[roomName]) return;
+    if (!rooms[roomName].buzzed) {
+      rooms[roomName].buzzed = true;
+      io.to(roomName).emit("buzzed", pseudo || "Anonyme");
     }
   });
 
-  socket.on('buzz', ({ code, pseudo }) => {
-    const party = parties[code];
-    if (!party || party.buzzed) return;
-    party.buzzed = true;
-    io.to(code).emit('buzzed', { pseudo });
+  socket.on("reset", (roomName) => {
+    if (rooms[roomName] && rooms[roomName].dj === socket.id) {
+      rooms[roomName].buzzed = false;
+      io.to(roomName).emit("reset-buzz");
+    }
   });
 
-  socket.on('reset', (code) => {
-    const party = parties[code];
-    if (party) {
-      delete party.buzzed;
-      io.to(code).emit('reset');
+  socket.on("disconnecting", () => {
+    for (const roomName of socket.rooms) {
+      if (rooms[roomName]) {
+        rooms[roomName].clients = rooms[roomName].clients.filter(c => c.id !== socket.id);
+        if (rooms[roomName].dj === socket.id) {
+          delete rooms[roomName];
+          io.to(roomName).emit("room-closed");
+        }
+      }
     }
   });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Serveur lancé sur le port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
