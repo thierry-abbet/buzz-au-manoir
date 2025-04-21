@@ -15,22 +15,53 @@ body {
 }
 
 button {
-  padding: 10px 20px;
+  padding: 12px 24px;
   margin: 10px;
   font-size: 1.2em;
-  background-color: #444;
+  background-color: #5c1a1b;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 999px; /* bouton bien rond */
   cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
 }
 
 button:hover {
-  background-color: #666;
+  background-color: #8b2d2f;
+  transform: scale(1.05);
+}
+
+button:disabled {
+  background-color: #333;
+  cursor: not-allowed;
+}
+
+#buzzButton.buzzed {
+  background-color: #1b5c20 !important;
 }
 
 #status {
   margin-top: 20px;
   font-size: 1.5em;
   color: gold;
+}
+
+.confetti {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  background-image: url("https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  z-index: 9999;
+  animation: fadeOut 3s forwards;
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
 }
