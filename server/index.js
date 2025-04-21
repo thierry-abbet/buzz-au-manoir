@@ -12,7 +12,7 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-const rooms = {}; // { roomName: { dj: socket.id, clients: [socket.id] } }
+const rooms = {}; // { roomName: { dj: socket.id, clients: [socket.id], buzzes: [] } }
 
 app.use(express.static(path.join(__dirname, "../public")));
 
@@ -26,7 +26,7 @@ app.get("/room", (req, res) => {
 
 app.get("/generate-room-name", (req, res) => {
   const roomName = generateRoomName();
-  rooms[roomName] = { dj: null, clients: [] };
+  rooms[roomName] = { dj: null, clients: [], buzzes: [] };
   res.json({ roomName });
 });
 
@@ -64,9 +64,22 @@ io.on("connection", (socket) => {
   socket.on("buzz", () => {
     const displayName = socket.data.name || "Anonyme";
     const room = socket.data.room;
-    if (room) {
-      io.to(room).emit("buzz", [{ name: displayName }]);
+    if (!room || !rooms[room]) return;
+
+    const alreadyBuzzed = rooms[room].buzzes.some(b => b.name === displayName);
+    if (!alreadyBuzzed) {
+      rooms[room].buzzes.push({ name: displayName });
+      io.to(room).emit("buzz", rooms[room].buzzes);
       console.log(`${displayName} a buzzé dans la salle ${room}`);
+    }
+  });
+
+  socket.on("resetBuzz", () => {
+    const room = socket.data.room;
+    if (room && rooms[room]) {
+      rooms[room].buzzes = [];
+      io.to(room).emit("buzz", []);
+      console.log(`Buzz réinitialisé pour la salle ${room}`);
     }
   });
 
