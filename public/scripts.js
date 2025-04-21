@@ -31,7 +31,7 @@ if (isDJ) {
   const roomParam = params.get("room");
 
   if (roomParam) {
-    // Le joueur est arrivé via un lien avec ?room=Nom
+    // Le joueur est arrivé via une URL avec ?room=Nom
     const formattedRoom = capitalizeRoomName(roomParam);
     fetch(`/check-room?name=${formattedRoom}`)
       .then((res) => res.json())
@@ -48,7 +48,7 @@ if (isDJ) {
         }
       });
   } else {
-    // Accès normal depuis la page d'accueil
+    // Accès normal depuis la page d’accueil
     joinBtn.addEventListener("click", () => {
       const input = roomInput.value.trim();
       const formattedRoom = capitalizeRoomName(input);
