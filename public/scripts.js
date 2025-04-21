@@ -23,10 +23,11 @@ function enableBuzzButton() {
   if (buzzButton) {
     buzzButton.disabled = false;
     buzzButton.classList.remove("buzzed");
-    buzzButton.addEventListener("click", () => {
+    buzzButton.onclick = () => {
       socket.emit("buzz");
       buzzButton.disabled = true;
-    });
+      buzzButton.classList.add("buzzed");
+    };
   }
 }
 
@@ -103,7 +104,10 @@ socket.on("buzz", (buzzers) => {
   buzzList.innerHTML = "";
   if (!buzzers || buzzers.length === 0) {
     status.textContent = "En attente du buzz...";
-    buzzButton?.classList.remove("buzzed");
+    if (buzzButton) {
+      buzzButton.classList.remove("buzzed");
+      buzzButton.disabled = false;
+    }
     return;
   }
 
@@ -119,10 +123,6 @@ socket.on("buzz", (buzzers) => {
 
   if (buzzers[0].name === socket.data?.name) {
     showConfetti();
-  }
-
-  if (buzzButton) {
-    buzzButton.classList.add("buzzed");
   }
 });
 
