@@ -32,9 +32,9 @@ function enableBuzzButton() {
 }
 
 function showConfetti() {
+  console.log("🎉 Confettis déclenchés");
   const confetti = document.createElement("div");
   confetti.classList.add("confetti");
-  confetti.innerHTML = "<span style='font-size:3em;'>🎉</span>";
   document.body.appendChild(confetti);
   setTimeout(() => confetti.remove(), 3000);
 }
@@ -122,9 +122,9 @@ socket.on("buzz", (buzzers) => {
   });
   buzzList.appendChild(list);
 
-  const myName = roomNameDisplay.textContent;
   const firstName = buzzers[0].name;
-  if (firstName === socket.data?.name) {
+  const myName = socket.data?.name;
+  if (firstName === myName) {
     showConfetti();
   }
 });
