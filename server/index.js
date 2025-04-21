@@ -65,7 +65,7 @@ io.on("connection", (socket) => {
     const displayName = socket.data.name || "Anonyme";
     const room = socket.data.room;
     if (room) {
-      io.to(room).emit("buzz", { name: displayName });
+      io.to(room).emit("buzz", [{ name: displayName }]);
       console.log(`${displayName} a buzzé dans la salle ${room}`);
     }
   });
