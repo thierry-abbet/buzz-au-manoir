@@ -44,8 +44,6 @@ if (isDJ) {
 
   resetButton.addEventListener("click", () => {
     socket.emit("resetBuzz");
-    buzzList.innerHTML = "";
-    status.textContent = "En attente du buzz...";
   });
 } else {
   const roomParam = params.get("room");
@@ -97,7 +95,8 @@ if (isDJ) {
 // Affiche la liste ordonnée des buzzers
 socket.on("buzz", (buzzers) => {
   buzzList.innerHTML = "";
-  if (buzzers.length === 0) {
+
+  if (!buzzers || buzzers.length === 0) {
     status.textContent = "En attente du buzz...";
     return;
   }
