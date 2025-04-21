@@ -21,14 +21,23 @@ function capitalizeRoomName(name) {
 
 function enableBuzzButton() {
   if (buzzButton) {
+    buzzButton.disabled = false;
+    buzzButton.classList.remove("buzzed");
     buzzButton.addEventListener("click", () => {
       socket.emit("buzz");
+      buzzButton.disabled = true;
     });
   }
 }
 
+function showConfetti() {
+  const confetti = document.createElement("div");
+  confetti.classList.add("confetti");
+  document.body.appendChild(confetti);
+  setTimeout(() => confetti.remove(), 3000);
+}
+
 if (isDJ) {
-  // DJ crée une salle
   lobbyDiv.classList.add("hidden");
   roomDiv.classList.remove("hidden");
   resetContainer.classList.remove("hidden");
@@ -49,7 +58,6 @@ if (isDJ) {
   const roomParam = params.get("room");
 
   if (roomParam) {
-    // Joueur arrivé par lien direct
     const formattedRoom = capitalizeRoomName(roomParam);
     fetch(`/check-room?name=${formattedRoom}`)
       .then((res) => res.json())
@@ -67,7 +75,6 @@ if (isDJ) {
         }
       });
   } else {
-    // Joueur via lobby
     joinBtn.addEventListener("click", () => {
       const input = roomInput.value.trim();
       const formattedRoom = capitalizeRoomName(input);
@@ -92,12 +99,11 @@ if (isDJ) {
   }
 }
 
-// Affiche la liste ordonnée des buzzers
 socket.on("buzz", (buzzers) => {
   buzzList.innerHTML = "";
-
   if (!buzzers || buzzers.length === 0) {
     status.textContent = "En attente du buzz...";
+    buzzButton?.classList.remove("buzzed");
     return;
   }
 
@@ -110,9 +116,16 @@ socket.on("buzz", (buzzers) => {
     list.appendChild(li);
   });
   buzzList.appendChild(list);
+
+  if (buzzers[0].name === socket.data?.name) {
+    showConfetti();
+  }
+
+  if (buzzButton) {
+    buzzButton.classList.add("buzzed");
+  }
 });
 
-// Liste des participants (DJ uniquement)
 socket.on("updateParticipants", (names) => {
   if (isDJ && participantsDiv) {
     participantsDiv.innerHTML = "<strong>Participants :</strong><br>" + names.join(", ");
