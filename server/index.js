@@ -26,59 +26,61 @@ app.get("/room", (req, res) => {
 
 app.get("/generate-room-name", (req, res) => {
   const roomName = generateRoomName();
+  rooms[roomName] = { dj: null, clients: [] };
   res.json({ roomName });
 });
 
-io.on("connection", (socket) => {
-  socket.on("createRoom", () => {
-    const roomName = generateRoomName();
-    rooms[roomName] = { dj: socket.id, clients: [] };
-    socket.join(roomName);
-    socket.data.name = "DJ";
-    socket.emit("roomCreated", roomName);
-    console.log(`Nouvelle salle créée : ${roomName}`);
-  });
+app.get("/check-room", (req, res) => {
+  const roomName = req.query.name;
+  const exists = !!rooms[roomName];
+  res.json({ exists });
+});
 
-  socket.on("joinRoom", ({ room, name, isDj }) => {
+io.on("connection", (socket) => {
+  console.log("Un client s'est connecté");
+
+  socket.on("joinRoom", ({ room, name, isDJ }) => {
     if (!room) return;
 
-    // Vérifie si la salle existe
+    // S'assure que la salle existe
     if (!rooms[room]) {
       socket.emit("roomNotFound");
       return;
     }
 
-    // Si le nom n'est pas encore fourni (client), on confirme que la salle existe
-    if (!name && !isDj) {
-      socket.emit("roomOk");
-      return;
-    }
-
     socket.join(room);
-    socket.data.name = name || "Anonyme";
+    socket.data.name = isDJ ? "DJ" : name || "Anonyme";
+    socket.data.room = room;
 
-    if (isDj) {
+    if (isDJ) {
       rooms[room].dj = socket.id;
     } else {
       rooms[room].clients.push(socket.id);
     }
 
-    socket.on("buzz", () => {
-      const displayName = socket.data.name || "Anonyme";
-      io.to(room).emit("buzz", displayName);
-      console.log(`${displayName} a buzzé dans la salle ${room}`);
-    });
+    console.log(`${socket.data.name} a rejoint la salle ${room}`);
+  });
 
-    socket.on("disconnect", () => {
-      if (rooms[room]) {
-        if (isDj) {
-          delete rooms[room];
-          console.log(`Salle supprimée : ${room}`);
-        } else {
-          rooms[room].clients = rooms[room].clients.filter((id) => id !== socket.id);
-        }
+  socket.on("buzz", () => {
+    const displayName = socket.data.name || "Anonyme";
+    const room = socket.data.room;
+    if (room) {
+      io.to(room).emit("buzz", { name: displayName });
+      console.log(`${displayName} a buzzé dans la salle ${room}`);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    const room = socket.data.room;
+    if (room && rooms[room]) {
+      if (socket.id === rooms[room].dj) {
+        delete rooms[room];
+        console.log(`Salle supprimée : ${room}`);
+      } else {
+        rooms[room].clients = rooms[room].clients.filter(id => id !== socket.id);
       }
-    });
+    }
+    console.log("Un client s'est déconnecté");
   });
 });
 
