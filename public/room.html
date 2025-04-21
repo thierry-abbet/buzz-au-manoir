@@ -35,11 +35,24 @@
 
     <button
       id="buzzButton"
-      class="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded text-2xl"
+      class="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded text-2xl mb-4"
     >
       BUZZ
     </button>
-    <p id="status" class="mt-6 text-xl">En attente du buzz...</p>
+
+    <p id="status" class="text-xl mb-4">En attente du buzz...</p>
+
+    <div id="resetContainer" class="mb-4 hidden">
+      <button
+        id="resetButton"
+        class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded"
+      >
+        Réinitialiser
+      </button>
+    </div>
+
+    <div id="buzzList" class="mt-4"></div>
+    <div id="participants" class="mt-4 text-sm text-gray-300"></div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
