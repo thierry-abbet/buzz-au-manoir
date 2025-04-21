@@ -15,6 +15,8 @@ const resetContainer = document.getElementById("resetContainer");
 const buzzList = document.getElementById("buzzList");
 const participantsDiv = document.getElementById("participants");
 
+let playerName = null;
+
 function capitalizeRoomName(name) {
   return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 }
@@ -49,6 +51,7 @@ if (isDJ) {
       const roomName = capitalizeRoomName(data.roomName);
       roomNameDisplay.textContent = roomName;
       socket.emit("joinRoom", { room: roomName, isDJ: true });
+      playerName = "DJ";
       enableBuzzButton();
     });
 
@@ -66,6 +69,7 @@ if (isDJ) {
         if (data.exists) {
           const pseudo = prompt("Quel est ton prénom ?");
           if (!pseudo) return;
+          playerName = pseudo;
           lobbyDiv.classList.add("hidden");
           roomDiv.classList.remove("hidden");
           roomNameDisplay.textContent = formattedRoom;
@@ -87,6 +91,7 @@ if (isDJ) {
           if (data.exists) {
             const pseudo = prompt("Quel est ton prénom ?");
             if (!pseudo) return;
+            playerName = pseudo;
             lobbyDiv.classList.add("hidden");
             roomDiv.classList.remove("hidden");
             roomNameDisplay.textContent = formattedRoom;
@@ -121,7 +126,7 @@ socket.on("buzz", (buzzers) => {
   });
   buzzList.appendChild(list);
 
-  if (buzzers[0].name === socket.data?.name) {
+  if (buzzers[0].name === playerName) {
     showConfetti();
   }
 });
