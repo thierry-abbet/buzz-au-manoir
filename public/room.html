@@ -26,13 +26,13 @@
         type="text"
         id="roomInput"
         placeholder="Nom de la partie"
-        class="text-black p-2 rounded"
+        class="text-black p-2 rounded border-2 border-[#5c1a1b]"
         autocomplete="off"
       />
     </div>
     <button
       id="joinBtn"
-      class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+      class="bg-[#5c1a1b] hover:bg-[#8b2d2f] text-white font-bold py-2 px-6 rounded-full transition-transform transform hover:scale-105"
     >
       Rejoindre une partie
     </button>
@@ -45,24 +45,24 @@
 
     <button
       id="buzzButton"
-      class="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded text-2xl mb-4"
+      class="bg-[#5c1a1b] hover:bg-[#1b5c20] text-white font-bold py-4 px-10 rounded-full text-2xl mb-4 transition-transform transform hover:scale-105"
     >
       BUZZ
     </button>
 
-    <p id="status" class="text-xl mb-4">En attente du buzz...</p>
+    <p id="status" class="text-xl mb-4 text-[#e1c870]">En attente du buzz...</p>
 
     <div id="resetContainer" class="mb-4 hidden">
       <button
         id="resetButton"
-        class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded"
+        class="bg-[#e1c870] hover:bg-[#f1d67e] text-black font-bold py-2 px-6 rounded-full"
       >
         Réinitialiser
       </button>
     </div>
 
     <div id="buzzList" class="mt-4"></div>
-    <div id="participants" class="mt-4 text-sm text-gray-300"></div>
+    <div id="participants" class="mt-4 text-sm text-gray-300 italic"></div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
