@@ -28,7 +28,7 @@ if (isDJ) {
   fetch("/generate-room-name")
     .then((res) => res.json())
     .then((data) => {
-      const roomName = capitalizeRoomName(data.name);
+      const roomName = capitalizeRoomName(data.roomName);
       roomNameDisplay.textContent = roomName;
       socket.emit("joinRoom", { room: roomName, isDJ: true });
     });
