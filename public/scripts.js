@@ -28,12 +28,11 @@ if (isDJ) {
       socket.emit("joinRoom", { room: roomName, isDJ: true });
     });
 } else {
-  // Joueur clique sur "Rejoindre une partie"
-  joinBtn.addEventListener("click", () => {
-    const input = roomInput.value.trim();
-    const formattedRoom = capitalizeRoomName(input);
-    if (!formattedRoom) return;
+  const roomParam = params.get("room");
 
+  if (roomParam) {
+    // Le joueur est arrivé via un lien avec ?room=Nom
+    const formattedRoom = capitalizeRoomName(roomParam);
     fetch(`/check-room?name=${formattedRoom}`)
       .then((res) => res.json())
       .then((data) => {
@@ -43,12 +42,34 @@ if (isDJ) {
           lobbyDiv.classList.add("hidden");
           roomDiv.classList.remove("hidden");
           roomNameDisplay.textContent = formattedRoom;
-          socket.emit("joinRoom", { room: formattedRoom, pseudo });
+          socket.emit("joinRoom", { room: formattedRoom, name: pseudo });
         } else {
           alert("Cette salle n'existe pas !");
         }
       });
-  });
+  } else {
+    // Accès normal depuis la page d'accueil
+    joinBtn.addEventListener("click", () => {
+      const input = roomInput.value.trim();
+      const formattedRoom = capitalizeRoomName(input);
+      if (!formattedRoom) return;
+
+      fetch(`/check-room?name=${formattedRoom}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.exists) {
+            const pseudo = prompt("Quel est ton prénom ?");
+            if (!pseudo) return;
+            lobbyDiv.classList.add("hidden");
+            roomDiv.classList.remove("hidden");
+            roomNameDisplay.textContent = formattedRoom;
+            socket.emit("joinRoom", { room: formattedRoom, name: pseudo });
+          } else {
+            alert("Cette salle n'existe pas !");
+          }
+        });
+    });
+  }
 }
 
 buzzButton.addEventListener("click", () => {
