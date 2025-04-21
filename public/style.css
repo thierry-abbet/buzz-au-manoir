@@ -18,7 +18,7 @@ button {
   padding: 12px 24px;
   margin: 10px;
   font-size: 1.2em;
-  background-color: #5c1a1b;
+  background-color: #5c1a1b; /* bordeaux/brun du site */
   color: white;
   border: none;
   border-radius: 999px; /* bouton bien rond */
@@ -27,7 +27,7 @@ button {
 }
 
 button:hover {
-  background-color: #8b2d2f;
+  background-color: #8b2d2f; /* un peu plus clair au hover */
   transform: scale(1.05);
 }
 
@@ -37,13 +37,13 @@ button:disabled {
 }
 
 #buzzButton.buzzed {
-  background-color: #1b5c20 !important;
+  background-color: #1b5c20 !important; /* vert foncé quand buzzé */
 }
 
 #status {
   margin-top: 20px;
   font-size: 1.5em;
-  color: gold;
+  color: #e1c870; /* doré doux, rappel du site */
 }
 
 .confetti {
@@ -64,4 +64,26 @@ button:disabled {
 @keyframes fadeOut {
   0% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* Champ texte + boutons secondaires */
+input[type="text"] {
+  border: 2px solid #5c1a1b;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 1em;
+}
+
+#resetButton {
+  background-color: #e1c870;
+  color: #1e1e1e;
+}
+
+#resetButton:hover {
+  background-color: #f1d67e;
+}
+
+#participants {
+  color: #aaa;
+  font-style: italic;
 }
