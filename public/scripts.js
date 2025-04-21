@@ -19,6 +19,14 @@ function capitalizeRoomName(name) {
   return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 }
 
+function enableBuzzButton() {
+  if (buzzButton) {
+    buzzButton.addEventListener("click", () => {
+      socket.emit("buzz");
+    });
+  }
+}
+
 if (isDJ) {
   // DJ crée une salle
   lobbyDiv.classList.add("hidden");
@@ -31,6 +39,7 @@ if (isDJ) {
       const roomName = capitalizeRoomName(data.roomName);
       roomNameDisplay.textContent = roomName;
       socket.emit("joinRoom", { room: roomName, isDJ: true });
+      enableBuzzButton();
     });
 
   resetButton.addEventListener("click", () => {
@@ -54,6 +63,7 @@ if (isDJ) {
           roomDiv.classList.remove("hidden");
           roomNameDisplay.textContent = formattedRoom;
           socket.emit("joinRoom", { room: formattedRoom, name: pseudo });
+          enableBuzzButton();
         } else {
           alert("Cette salle n'existe pas !");
         }
@@ -75,6 +85,7 @@ if (isDJ) {
             roomDiv.classList.remove("hidden");
             roomNameDisplay.textContent = formattedRoom;
             socket.emit("joinRoom", { room: formattedRoom, name: pseudo });
+            enableBuzzButton();
           } else {
             alert("Cette salle n'existe pas !");
           }
@@ -82,11 +93,6 @@ if (isDJ) {
     });
   }
 }
-
-// Gestion du BUZZ
-buzzButton.addEventListener("click", () => {
-  socket.emit("buzz");
-});
 
 // Affiche la liste ordonnée des buzzers
 socket.on("buzz", (buzzers) => {
