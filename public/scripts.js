@@ -1,115 +1,115 @@
-// server/index.js
+// public/scripts.js
 
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const path = require("path");
-const { generateRoomName } = require("./utils/names");
+const socket = io();
+const params = new URLSearchParams(window.location.search);
+const isDJ = params.get("dj") === "true";
+const roomDiv = document.getElementById("room");
+const lobbyDiv = document.getElementById("lobby");
+const roomInput = document.getElementById("roomInput");
+const joinBtn = document.getElementById("joinBtn");
+const buzzButton = document.getElementById("buzzButton");
+const status = document.getElementById("status");
+const roomNameDisplay = document.getElementById("roomName");
+const resetButton = document.getElementById("resetButton");
+const resetContainer = document.getElementById("resetContainer");
+const buzzList = document.getElementById("buzzList");
+const participantsDiv = document.getElementById("participants");
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
-
-const PORT = process.env.PORT || 3000;
-
-const rooms = {}; // { roomName: { dj: socket.id, clients: [socket.id], buzzes: [] } }
-
-app.use(express.static(path.join(__dirname, "../public")));
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/index.html"));
-});
-
-app.get("/room", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/room.html"));
-});
-
-app.get("/generate-room-name", (req, res) => {
-  const roomName = generateRoomName();
-  res.json({ name: roomName });
-});
-
-app.get("/check-room", (req, res) => {
-  const name = req.query.name;
-  res.json({ exists: !!rooms[name] });
-});
-
-io.on("connection", (socket) => {
-  socket.on("joinRoom", ({ room, name, isDJ }) => {
-    if (!room) return;
-
-    if (!rooms[room]) {
-      if (isDJ) {
-        rooms[room] = { dj: socket.id, clients: [], buzzes: [] };
-        socket.join(room);
-        socket.data.name = "DJ";
-        socket.data.room = room;
-        io.to(room).emit("updateParticipants", getParticipantNames(room));
-        console.log(`Salle créée : ${room}`);
-      } else {
-        socket.emit("roomNotFound");
-      }
-      return;
-    }
-
-    if (!name && !isDJ) {
-      socket.emit("roomOk");
-      return;
-    }
-
-    socket.join(room);
-    socket.data.name = name || "Anonyme";
-    socket.data.room = room;
-
-    if (isDJ) {
-      rooms[room].dj = socket.id;
-    } else {
-      rooms[room].clients.push(socket.id);
-      io.to(room).emit("updateParticipants", getParticipantNames(room));
-    }
-
-    socket.on("buzz", () => {
-      const displayName = socket.data.name || "Anonyme";
-      const roomName = socket.data.room;
-      if (!rooms[roomName]) return;
-
-      const alreadyBuzzed = rooms[roomName].buzzes.some((b) => b.name === displayName);
-      if (!alreadyBuzzed) {
-        rooms[roomName].buzzes.push({ name: displayName });
-        io.to(roomName).emit("buzz", rooms[roomName].buzzes);
-        console.log(`${displayName} a buzzé dans la salle ${roomName}`);
-      }
-    });
-
-    socket.on("resetBuzz", () => {
-      const roomName = socket.data.room;
-      if (rooms[roomName]) {
-        rooms[roomName].buzzes = [];
-        io.to(roomName).emit("buzz", []);
-        console.log(`Buzz réinitialisé pour la salle ${roomName}`);
-      }
-    });
-
-    socket.on("disconnect", () => {
-      const roomName = socket.data.room;
-      if (rooms[roomName]) {
-        if (isDJ) {
-          delete rooms[roomName];
-          console.log(`Salle supprimée : ${roomName}`);
-        } else {
-          rooms[roomName].clients = rooms[roomName].clients.filter((id) => id !== socket.id);
-          io.to(roomName).emit("updateParticipants", getParticipantNames(roomName));
-        }
-      }
-    });
-  });
-});
-
-function getParticipantNames(room) {
-  const clientIds = rooms[room]?.clients || [];
-  return clientIds.map((id) => io.sockets.sockets.get(id)?.data?.name || "Anonyme");
+function capitalizeRoomName(name) {
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 }
 
-server.listen(PORT, () => {
-  console.log(`Serveur démarré sur http://localhost:${PORT}`);
+if (isDJ) {
+  // DJ crée une salle
+  lobbyDiv.classList.add("hidden");
+  roomDiv.classList.remove("hidden");
+  resetContainer.classList.remove("hidden");
+
+  fetch("/generate-room-name")
+    .then((res) => res.json())
+    .then((data) => {
+      const roomName = capitalizeRoomName(data.name);
+      roomNameDisplay.textContent = roomName;
+      socket.emit("joinRoom", { room: roomName, isDJ: true });
+    });
+
+  resetButton.addEventListener("click", () => {
+    socket.emit("resetBuzz");
+    buzzList.innerHTML = "";
+    status.textContent = "En attente du buzz...";
+  });
+} else {
+  const roomParam = params.get("room");
+
+  if (roomParam) {
+    // Joueur arrivé par lien direct
+    const formattedRoom = capitalizeRoomName(roomParam);
+    fetch(`/check-room?name=${formattedRoom}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.exists) {
+          const pseudo = prompt("Quel est ton prénom ?");
+          if (!pseudo) return;
+          lobbyDiv.classList.add("hidden");
+          roomDiv.classList.remove("hidden");
+          roomNameDisplay.textContent = formattedRoom;
+          socket.emit("joinRoom", { room: formattedRoom, name: pseudo });
+        } else {
+          alert("Cette salle n'existe pas !");
+        }
+      });
+  } else {
+    // Joueur via lobby
+    joinBtn.addEventListener("click", () => {
+      const input = roomInput.value.trim();
+      const formattedRoom = capitalizeRoomName(input);
+      if (!formattedRoom) return;
+
+      fetch(`/check-room?name=${formattedRoom}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.exists) {
+            const pseudo = prompt("Quel est ton prénom ?");
+            if (!pseudo) return;
+            lobbyDiv.classList.add("hidden");
+            roomDiv.classList.remove("hidden");
+            roomNameDisplay.textContent = formattedRoom;
+            socket.emit("joinRoom", { room: formattedRoom, name: pseudo });
+          } else {
+            alert("Cette salle n'existe pas !");
+          }
+        });
+    });
+  }
+}
+
+// Gestion du BUZZ
+buzzButton.addEventListener("click", () => {
+  socket.emit("buzz");
+});
+
+// Affiche la liste ordonnée des buzzers
+socket.on("buzz", (buzzers) => {
+  buzzList.innerHTML = "";
+  if (buzzers.length === 0) {
+    status.textContent = "En attente du buzz...";
+    return;
+  }
+
+  status.textContent = `${buzzers[0].name} a buzzé en premier ! 🎉`;
+
+  const list = document.createElement("ul");
+  buzzers.forEach((b, i) => {
+    const li = document.createElement("li");
+    li.textContent = `${i + 1}. ${b.name}`;
+    list.appendChild(li);
+  });
+  buzzList.appendChild(list);
+});
+
+// Liste des participants (DJ uniquement)
+socket.on("updateParticipants", (names) => {
+  if (isDJ && participantsDiv) {
+    participantsDiv.innerHTML = "<strong>Participants :</strong><br>" + names.join(", ");
+  }
 });
