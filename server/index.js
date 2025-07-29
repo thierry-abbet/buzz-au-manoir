@@ -14,6 +14,18 @@ const PORT = process.env.PORT || 3000;
 
 const rooms = {}; // { roomName: { dj: socket.id, clients: [socket.id], buzzes: [] } }
 
+function sendParticipants(room) {
+  const roomData = rooms[room];
+  if (!roomData || !roomData.dj) return;
+
+  const names = roomData.clients
+    .map((id) => io.sockets.sockets.get(id))
+    .filter(Boolean)
+    .map((s) => s.data.name || "Anonyme");
+
+  io.to(roomData.dj).emit("updateParticipants", names);
+}
+
 app.use(express.static(path.join(__dirname, "../public")));
 
 app.get("/", (req, res) => {
@@ -58,6 +70,7 @@ io.on("connection", (socket) => {
       rooms[room].clients.push(socket.id);
     }
 
+    sendParticipants(room);
     console.log(`${socket.data.name} a rejoint la salle ${room}`);
   });
 
@@ -91,6 +104,7 @@ io.on("connection", (socket) => {
         console.log(`Salle supprimée : ${room}`);
       } else {
         rooms[room].clients = rooms[room].clients.filter(id => id !== socket.id);
+        sendParticipants(room);
       }
     }
     console.log("Un client s'est déconnecté");
