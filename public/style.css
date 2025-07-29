@@ -91,3 +91,12 @@ button:disabled {
   0% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+.version {
+  position: fixed;
+  bottom: 10px;
+  width: 100%;
+  text-align: center;
+  font-size: 0.8em;
+  color: #cccccc;
+}
